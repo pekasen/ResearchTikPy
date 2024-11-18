@@ -1,7 +1,3 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "ResearchTikPy"
 version = "0.2.1"
@@ -10,11 +6,7 @@ authors = [
 ]
 description = "Python API wrapper for the TikTok Research API"
 readme = "README.md"
-requires-python = ">=3.7"
-dependencies = [
-    "requests",
-    "pandas"
-]
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -23,3 +15,22 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/HohnerJulian/ResearchTikPy"
+
+[tool.poetry]
+name = "researchtikpy"
+version = "0.2.1"
+description = "Python API wrapper for the TikTok Research API"
+authors = ["Julian Hohner <daswaeldchen@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^2.2.3"
+requests = "^2.32.3"
+click = "^8.1.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
