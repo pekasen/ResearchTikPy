@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta
+import time
 import requests
 import pandas as pd
 from time import sleep
 
+from researchtikpy import endpoints
 from researchtikpy.utils import validate_access_token_object
+
+# Fields: "id,video_description,create_time,username,like_count,comment_count,share_count,view_count,hashtag_names"
+
+class Enpoints(Enum)
 
 
 def get_followers(
@@ -57,7 +63,7 @@ def get_followers(
             if total_count is not None:
                 effective_max_count = min(max_count, total_count - retrieved_count)
 
-            endpoint = "https://open.tiktokapis.com/v2/research/user/followers/"
+            endpoint = endpoints.followers
             headers = {
                 "Authorization": f"Bearer {validate_access_token_object(access_token)}",
                 "Content-Type": "application/json",
@@ -141,7 +147,7 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
         has_more = True
 
         while has_more:
-            endpoint = "https://open.tiktokapis.com/v2/research/user/following/"
+            endpoint = endpoints.followings
             headers = {
                 "Authorization": f"Bearer {validate_access_token_object(access_token)}",
                 "Content-Type": "application/json",
@@ -218,7 +224,7 @@ def get_users_info(
     pd.DataFrame
         DataFrame containing user information.
     """
-    endpoint = "https://open.tiktokapis.com/v2/research/user/info/"
+    endpoint = endpoints.user_info
     headers = {
         "Authorization": f"Bearer {validate_access_token_object(access_token)}",
         "Content-Type": "application/json",
@@ -289,7 +295,7 @@ def get_liked_videos(
     pd.DataFrame
         DataFrame containing all liked videos from the provided usernames.
     """
-    endpoint = "https://open.tiktokapis.com/v2/research/user/liked_videos/"
+    endpoint = endpoints.liked_videos
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -383,7 +389,7 @@ def get_videos_info(
     fields = "id,video_description,create_time,region_code,share_count,view_count,like_count,comment_count,music_id,hashtag_names,username,effect_ids,playlist_id,voice_to_text"
     query_fields = fields.split(",")
 
-    endpoint = "https://open.tiktokapis.com/v2/research/video/query/"
+    endpoint = endpoints.query
     headers = {
         "Authorization": f"Bearer {validate_access_token_object(access_token)}",
         "Content-Type": "application/json",
@@ -544,7 +550,7 @@ def get_videos_query(
 
     fields = "id,video_description,create_time,region_code,share_count,view_count,like_count,comment_count,music_id,hashtag_names,username,effect_ids,playlist_id,voice_to_text"
 
-    endpoint = "https://open.tiktokapis.com/v2/research/video/query/"
+    endpoint = endpoints.query
     url_with_fields = f"{endpoint}?fields={fields}"
 
     assert isinstance(access_token, str), "access_token must be a string!"
@@ -618,7 +624,7 @@ def get_video_comments(
     pd.DataFrame
         DataFrame containing all comments from the provided videos.
     """
-    endpoint = "https://open.tiktokapis.com/v2/research/video/comment/list/"
+    endpoint = endpoints.comments
     headers = {
         "Authorization": f"Bearer {validate_access_token_object(access_token)}",
         "Content-Type": "application/json",
@@ -699,7 +705,7 @@ def get_pinned_videos(
     pd.DataFrame:
         DataFrame containing all pinned videos from the provided usernames.
     """
-    endpoint = "https://open.tiktokapis.com/v2/research/user/pinned_videos/"
+    endpoint = endpoints.pinned_videos
     headers = {
         "Authorization": f"Bearer {validate_access_token_object(access_token)}",
         "Content-Type": "application/json",
