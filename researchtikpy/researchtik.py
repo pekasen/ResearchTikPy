@@ -9,8 +9,6 @@ from researchtikpy.utils import validate_access_token_object
 
 # Fields: "id,video_description,create_time,username,like_count,comment_count,share_count,view_count,hashtag_names"
 
-class Enpoints(Enum)
-
 
 def get_followers(
     usernames_list, access_token, max_count=100, total_count=None, verbose=True
@@ -50,6 +48,7 @@ def get_followers(
     """
     all_followers_df = pd.DataFrame()
     session = requests.Session()  # Use session for improved performance
+    endpoint = endpoints.followers
 
     for username in usernames_list:
         followers_list = []
@@ -63,7 +62,6 @@ def get_followers(
             if total_count is not None:
                 effective_max_count = min(max_count, total_count - retrieved_count)
 
-            endpoint = endpoints.followers
             headers = {
                 "Authorization": f"Bearer {validate_access_token_object(access_token)}",
                 "Content-Type": "application/json",
