@@ -13,7 +13,7 @@ import pandas as pd
 import requests
 
 from researchtikpy import endpoints
-from researchtikpy.query_lang import Condition, Query
+from researchtikpy.query_lang import Condition, Query, as_dict
 from researchtikpy.utils import validate_access_token_object
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-positional-arguments
@@ -543,7 +543,7 @@ def get_videos_query(
     https://developers.tiktok.com/doc/research-api-specs-query-videos/
     For the rest of parameters, see get_videos_hashtag()
     """
-
+    query = Query(**query) if isinstance(query, dict) else query
     fields = (
         "id,video_description,create_time,region_code,share_count,view_count,like_count,"
         "comment_count,music_id,hashtag_names,username,effect_ids,playlist_id,voice_to_text"
@@ -559,7 +559,7 @@ def get_videos_query(
     collected_videos = []
     has_more = True
     params = {
-        "query": query,
+        "query": as_dict(query),
         "start_date": start_date_dt.strftime("%Y%m%d"),
         "end_date": end_date_dt.strftime("%Y%m%d"),
         "max_count": max_count,

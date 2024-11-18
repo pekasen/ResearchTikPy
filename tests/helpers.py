@@ -1,13 +1,13 @@
 import os
 
 from functools import cache
-from researchtikpy import get_access_token
+from researchtikpy import AccessToken
 
 
 @cache
 def access_token() -> str:
-    data: dict = get_access_token(
-        client_key=os.environ["TIKTOK_CLIENT_KEY"],
-        client_secret=os.environ["TIKTOK_CLIENT_SECRET"],
+    data = AccessToken(
+        client_key=os.environ["TIKTOK_CLIENT_KEY"],  # TODO: Do not run unit tests with real credentials
+        client_secret=os.environ["TIKTOK_CLIENT_SECRET"],  # This is both unsafe and unnecessary - use mocks instead.
     )
-    return data["access_token"]
+    return data.token

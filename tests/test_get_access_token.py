@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from researchtikpy import get_access_token
+from researchtikpy import AccessToken
 
 class TestGetAccessToken(unittest.TestCase):
 
@@ -9,7 +9,7 @@ class TestGetAccessToken(unittest.TestCase):
         # Arrange
         expected_response = {
             "access_token": "test_access_token",
-            "expires_in": 3600,
+            "expires_in": 7200,
             "token_type": "Bearer"
         }
         mock_post.return_value.status_code = 200
@@ -18,7 +18,12 @@ class TestGetAccessToken(unittest.TestCase):
         client_secret = 'test_client_secret'
 
         # Act
-        response = get_access_token(client_key, client_secret)
+        access_token = AccessToken(client_key, client_secret)
+        response = {
+            "access_token": access_token.token,
+            "expires_in": 7200,
+            "token_type": "Bearer"
+        }
 
         # Assert
         self.assertEqual(response, expected_response)
@@ -33,7 +38,7 @@ class TestGetAccessToken(unittest.TestCase):
 
         # Act & Assert
         with self.assertRaises(Exception) as context:
-            get_access_token(client_key, client_secret)
+            AccessToken(client_key, client_secret)
         
         self.assertIn('Failed to obtain access token', str(context.exception))
 

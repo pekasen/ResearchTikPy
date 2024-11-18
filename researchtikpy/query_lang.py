@@ -283,6 +283,10 @@ class Condition:
     operation: Operators
     field_values: List[str]
 
+    def __post_init__(self):
+        if self.operation == "EQ" and len(self.field_values) != 1:
+            raise ValueError("EQ operation must have one field value")
+
 
 @dataclass(config=ConfigDict(alias_generator=lambda x: x.removesuffix("_")))
 class Query:
