@@ -1,14 +1,21 @@
-from datetime import datetime, timedelta
+"""ResearchTikPy - A Python package for TikTok Research API.
+
+This module contains functions to fetch data from the TikTok Research API.
+The functions are designed to fetch data for multiple users or videos at once
+and compile them into a single DataFrame for further analysis.
+"""
+
 import time
-import requests
-import pandas as pd
+from datetime import datetime
 from time import sleep
+
+import pandas as pd
+import requests
 
 from researchtikpy import endpoints
 from researchtikpy.utils import validate_access_token_object
 
-# Fields: "id,video_description,create_time,username,like_count,comment_count,share_count,view_count,hashtag_names"
-
+# pylint: disable=too-many-arguments, too-many-locals, too-many-positional-arguments
 
 def get_followers(
     usernames_list, access_token, max_count=100, total_count=None, verbose=True
@@ -39,12 +46,14 @@ def get_followers(
     Note
     ----
     You might encounter a varying number of followers fetched per request.
-    This is due to how TikTok's API handles pagination and possibly how it limits data per request.
-    As you approach the total limit of followers you want to fetch (total_count),
-    the API might return fewer followers per request,
-    especially if the remaining number to reach the total is less than your specified max_count.
-    This is normal behavior for APIs when handling paginated results close to the limit of a dataset.
-    It however unnecessarily uses your daily quota faster than it should. Have to optimize that in the future.
+    This is due to how TikTok's API handles pagination and possibly how it 
+    limits data per request. As you approach the total limit of followers you
+    want to fetch (total_count), the API might return fewer followers per
+    request,especially if the remaining number to reach the total is less than
+    your specified max_count. This is normal behavior for APIs when handling
+    paginated results close to the limit of a dataset. It however unnecessarily
+    uses your daily quota faster than it should.
+    We'll have to optimize that in the future.
     """
     all_followers_df = pd.DataFrame()
     session = requests.Session()  # Use session for improved performance
@@ -85,12 +94,14 @@ def get_followers(
                 )  # Update cursor based on response
                 if verbose:
                     print(
-                        f"Retrieved {len(followers)} followers for user {username} (total retrieved: {retrieved_count})"
+                        f"Retrieved {len(followers)} followers for user"
+                        f"{username} (total retrieved: {retrieved_count})"
                     )
             elif response.status_code == 429:
                 if verbose:
                     print(
-                        f"Rate limit exceeded fetching followers for user {username}. Pausing before retrying..."
+                        "Rate limit exceeded fetching followers"
+                        f"for user {username}. Pausing before retrying..."
                     )
                 sleep(
                     60
@@ -118,7 +129,8 @@ def get_followers(
 
 def get_following(usernames_list, access_token, max_count=100, verbose=True):
     """
-    Fetch accounts that a user follows. Each username in the list is used to fetch accounts they follow.
+    Fetch accounts that a user follows. Each username in the list is used
+    to fetch accounts they follow.
 
     Parameters
     ----------
@@ -127,9 +139,11 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
     access_token : str
         Access token for TikTok's API.
     max_count : int, optional
-        Maximum number of followed accounts to retrieve per request (default is 100).
+        Maximum number of followed accounts to retrieve per request
+        (default is 100).
     verbose : bool, optional
-        If True, prints detailed logs; if False, suppresses most print statements.
+        If True, prints detailed logs; if False, suppresses most
+        print statements.
 
     Returns
     -------
@@ -167,11 +181,13 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
                     "cursor", cursor + max_count
                 )  # Update cursor based on response
                 if verbose:
-                    print(f"Retrieved {len(following)} accounts for user {username}")
+                    print(f"Retrieved {len(following)}"
+                          f"accounts for user {username}")
             elif response.status_code == 429:
                 if verbose:
                     print(
-                        f"Rate limit exceeded fetching following for user {username}. Pausing before retrying..."
+                        "Rate limit exceeded fetching following for"
+                        f"user {username}. Pausing before retrying..."
                     )
                 sleep(
                     60
@@ -200,7 +216,8 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
 def get_users_info(
     usernames,
     access_token,
-    fields="display_name,bio_description,avatar_url,is_verified,follower_count,following_count,likes_count,video_count",
+    fields="display_name,bio_description,avatar_url,is_verified,"
+           "follower_count,following_count,likes_count,video_count",
     verbose=True,
 ):
     """
@@ -268,7 +285,8 @@ def get_users_info(
 def get_liked_videos(
     usernames,
     access_token,
-    fields="id,video_description,create_time,username,like_count,comment_count,share_count,view_count,hashtag_names",
+    fields="id,video_description,create_time,username,like_count,"
+           "comment_count,share_count,view_count,hashtag_names",
     max_count=100,
     verbose=True,
 ):
@@ -282,7 +300,9 @@ def get_liked_videos(
     access_token : str
         Access token for TikTok's API.
     fields : str, optional
-        Comma-separated string of fields to retrieve for each liked video (default is "id,video_description,create_time,username,like_count,comment_count,share_count,view_count,hashtag_names").
+        Comma-separated string of fields to retrieve for each liked video
+        (default is "id,video_description,create_time,username,like_count,
+        comment_count,share_count,view_count,hashtag_names").
     max_count : int, optional
         Maximum number of liked videos to retrieve per request (default is 100).
     verbose : bool, optional
@@ -326,7 +346,8 @@ def get_liked_videos(
                     )
                     if verbose:
                         print(
-                            f"Successfully fetched {len(user_liked_videos)} liked videos for user {username}"
+                            f"Successfully fetched {len(user_liked_videos)}"
+                            f"liked videos for user {username}"
                         )
                 else:
                     if verbose:
@@ -359,7 +380,14 @@ def get_liked_videos(
 
 
 def get_videos_info(
-    usernames, access_token, start_date, end_date, max_count=100, verbose=True
+    usernames,
+    access_token,
+    start_date,
+    end_date,
+    max_count=100,
+    verbose=True,
+    total_max_count=1000,
+    rate_limit_pause=60,
 ):
     """
     Fetches video information for given usernames within the specified date range.
@@ -384,69 +412,34 @@ def get_videos_info(
     pandas.DataFrame
         DataFrame containing the video information.
     """
-    fields = "id,video_description,create_time,region_code,share_count,view_count,like_count,comment_count,music_id,hashtag_names,username,effect_ids,playlist_id,voice_to_text"
-    query_fields = fields.split(",")
 
-    endpoint = endpoints.query
-    headers = {
-        "Authorization": f"Bearer {validate_access_token_object(access_token)}",
-        "Content-Type": "application/json",
-    }
+    query = (
+        {
+            "and": [
+                {
+                    "operation": "IN",
+                    "field_name": "username",
+                    "field_values": usernames,
+                }
+            ]
+        },
+    )
 
-    start_date_dt = datetime.strptime(start_date, "%Y%m%d")
-    end_date_dt = datetime.strptime(end_date, "%Y%m%d")
-    delta = timedelta(days=30)
-    session = requests.Session()
-
-    videos_df = pd.DataFrame(columns=query_fields)
-
-    for username in usernames:
-        current_start_date = start_date_dt
-        while current_start_date <= end_date_dt:
-            current_end_date = min(current_start_date + delta, end_date_dt)
-            query_body = {
-                "query": {
-                    "and": [
-                        {
-                            "operation": "EQ",
-                            "field_name": "username",
-                            "field_values": [username],
-                        }
-                    ]
-                },
-                "start_date": current_start_date.strftime("%Y%m%d"),
-                "end_date": current_end_date.strftime("%Y%m%d"),
-                "max_count": max_count,
-            }
-
-            if verbose:
-                print(
-                    f"Querying videos for {username} from {current_start_date.strftime('%Y%m%d')} to {current_end_date.strftime('%Y%m%d')}"
-                )
-            response = session.post(
-                f"{endpoint}?fields={','.join(query_fields)}",
-                headers=headers,
-                json=query_body,
-            )
-            if verbose:
-                print(f"Response status: {response.status_code}")
-
-            if response.status_code == 200:
-                data = response.json().get("data", {})
-                videos = data.get("videos", [])
-                if verbose:
-                    print(f"Found {len(videos)} videos for {username}")
-                videos_df = pd.concat(
-                    [videos_df, pd.DataFrame(videos)], ignore_index=True
-                )
-            else:
-                if verbose:
-                    print(
-                        f"Error fetching videos for user {username}: {response.status_code} - {response.text}"
-                    )
-            current_start_date += delta + timedelta(days=1)
-
-    return videos_df
+    if verbose:
+        print(
+            f"Querying videos for {', '.join(usernames)} from "
+            f"{start_date} to "
+            f"{end_date}"
+        )
+    get_videos_query(
+        query=query,
+        access_token=access_token,
+        start_date=start_date,
+        end_date=end_date,
+        total_max_count=total_max_count,
+        max_count=max_count,
+        rate_limit_pause=rate_limit_pause,
+    )
 
 
 def get_videos_hashtag(
@@ -462,8 +455,10 @@ def get_videos_hashtag(
     rate_limit_pause=60,
 ):
     """
-    Searches for videos by hashtag with optional filters for region code, music ID, or effect ID, and includes rate limit handling.
-    All available fields are retrieved by default, queries are segmented if the range between start_date and end_date exceeds 30 days.
+    Searches for videos by hashtag with optional filters for region code,
+    music ID, or effect ID, and includes rate limit handling. All available
+    fields are retrieved by default, queries are segmented if the range between
+    start_date and end_date exceeds 30 days.
 
     Parameters
     ----------
@@ -542,56 +537,60 @@ def get_videos_query(
 ) -> pd.DataFrame:
     """
     Like get_videos_hashtag(), but you can pass a custom `query` object
-    For the `query` parameter, see the TikTok API documentation: https://developers.tiktok.com/doc/research-api-specs-query-videos/
+    For the `query` parameter, see the TikTok API documentation:
+    https://developers.tiktok.com/doc/research-api-specs-query-videos/
     For the rest of parameters, see get_videos_hashtag()
     """
 
-    fields = "id,video_description,create_time,region_code,share_count,view_count,like_count,comment_count,music_id,hashtag_names,username,effect_ids,playlist_id,voice_to_text"
-
+    fields = (
+        "id,video_description,create_time,region_code,share_count,view_count,like_count,"
+        "comment_count,music_id,hashtag_names,username,effect_ids,playlist_id,voice_to_text"
+    )
     endpoint = endpoints.query
     url_with_fields = f"{endpoint}?fields={fields}"
-
-    assert isinstance(access_token, str), "access_token must be a string!"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {validate_access_token_object(access_token)}",
     }
-
     start_date_dt = datetime.strptime(start_date, "%Y%m%d")
     end_date_dt = datetime.strptime(end_date, "%Y%m%d")
-    delta = timedelta(days=30)
-
     collected_videos = []
+    has_more = True
+    params = {
+        "query": query,
+        "start_date": start_date_dt.strftime("%Y%m%d"),
+        "end_date": end_date_dt.strftime("%Y%m%d"),
+        "max_count": max_count,
+    }
 
-    while start_date_dt < end_date_dt:
-        current_end_date = min(start_date_dt + delta, end_date_dt)
+    while has_more is True and len(collected_videos) < total_max_count:
 
-        query_body = {
-            "query": query,
-            "start_date": start_date_dt.strftime("%Y%m%d"),
-            "end_date": current_end_date.strftime("%Y%m%d"),
-            "max_count": max_count,
-        }
+        print(f"Fetching videos with cursor at {params.get('cursor', 0)}")
 
-        response = requests.post(url_with_fields, headers=headers, json=query_body)
+        response = requests.post(
+            url_with_fields,
+            headers=headers,
+            json=params,
+            timeout=30,
+        )
         if response.status_code == 200:
             data = response.json().get("data", {})
             videos = data.get("videos", [])
             collected_videos.extend(videos)
-            if (
-                not data.get("has_more", False)
-                or len(collected_videos) >= total_max_count
-            ):
-                break
+            if data.get("has_more", False) is True:
+                has_more = data.get("has_more", False)
+                if "cursor" in data:
+                    params["cursor"] = data.get("cursor")
+                    params["search_id"] = data.get("search_id")
+                else:
+                    break
         elif response.status_code == 429:
             print("Rate limit exceeded. Pausing before retrying...")
             time.sleep(rate_limit_pause)
         else:
             raise ValueError(f"status_code={response.status_code}. {response.json()}")
 
-        start_date_dt = current_end_date + timedelta(days=1)
-
-    return pd.DataFrame(collected_videos[:total_max_count])
+    return pd.DataFrame(collected_videos)
 
 
 def get_video_comments(
@@ -611,7 +610,8 @@ def get_video_comments(
     access_token : str
         Access token for TikTok's API.
     fields : str, optional
-        Comma-separated string of fields to retrieve for each comment. Defaults to a basic set of fields.
+        Comma-separated string of fields to retrieve for each comment.
+        Defaults to a basic set of fields.
     max_count : int, optional
         Maximum number of comments to retrieve per request (default is 100).
     verbose : bool, optional
@@ -670,7 +670,8 @@ def get_video_comments(
             else:
                 if verbose:
                     print(
-                        f"Error fetching comments for video {video_id}: {response.status_code}",
+                        f"Error fetching comments for video {video_id}:"
+                        f"{response.status_code}",
                         response.json(),
                     )
                 break  # Stop the loop in case of an error
@@ -681,7 +682,8 @@ def get_video_comments(
 def get_pinned_videos(
     usernames,
     access_token,
-    fields="id,video_description,create_time,username,like_count,comment_count,share_count,view_count,hashtag_names",
+    fields="id,video_description,create_time,username,"
+           "like_count,comment_count,share_count,view_count,hashtag_names",
     verbose=True,
 ):
     """
@@ -729,7 +731,8 @@ def get_pinned_videos(
                 )
                 if verbose:
                     print(
-                        f"Successfully fetched {len(pinned_videos)} pinned videos for user {username}"
+                        f"Successfully fetched {len(pinned_videos)}"
+                        f"pinned videos for user {username}"
                     )
             else:
                 if verbose:
