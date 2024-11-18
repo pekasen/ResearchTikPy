@@ -1,2 +1,10 @@
+# MacOS' Finder files
+.DS_Store
+
+# Python
+*.pyc
 venv/
 __pycache__/
+
+# Poetry
+poetry.lock
