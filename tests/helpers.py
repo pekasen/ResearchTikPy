@@ -1,8 +1,7 @@
+import os
+
 from functools import cache
 from researchtikpy import get_access_token
-
-
-import os
 
 
 @cache

@@ -1,11 +1,10 @@
-# test_get_access_token.py
 import unittest
 from unittest.mock import patch
-from researchtikpy.get_access_token import get_access_token
+from researchtikpy import get_access_token
 
 class TestGetAccessToken(unittest.TestCase):
 
-    @patch('researchtikpy.get_access_token.requests.post')
+    @patch('requests.post')
     def test_token_retrieval_success(self, mock_post):
         # Arrange
         expected_response = {
@@ -24,7 +23,7 @@ class TestGetAccessToken(unittest.TestCase):
         # Assert
         self.assertEqual(response, expected_response)
 
-    @patch('researchtikpy.get_access_token.requests.post')
+    @patch('requests.post')
     def test_token_retrieval_failure(self, mock_post):
         # Arrange
         mock_post.return_value.status_code = 400
