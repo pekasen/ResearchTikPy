@@ -11,7 +11,7 @@ from .researchtik import (
 )
 from .utils import AccessToken
 from .query_lang import Condition, Query
-
+__version__ = "0.2.1"
 __all__ = [
     "AccessToken",
     "Condition",
