@@ -29,6 +29,7 @@ python = "^3.9"
 pandas = "^2.2.3"
 requests = "^2.32.3"
 click = "^8.1.7"
+pydantic = "^2.9.2"
 
 
 [tool.poetry.group.dev.dependencies]

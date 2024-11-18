@@ -13,6 +13,7 @@ import pandas as pd
 import requests
 
 from researchtikpy import endpoints
+from researchtikpy.query_lang import Condition, Query
 from researchtikpy.utils import validate_access_token_object
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-positional-arguments
@@ -504,25 +505,26 @@ def _create_query(
     hashtags: list[str], region_code: str, music_id: str, effect_id: str
 ) -> dict:
     and_conditions = [
-        {"operation": "IN", "field_name": "hashtag_name", "field_values": hashtags}
+        Condition(operation="IN", field_name="hashtag_name", field_values=hashtags)
     ]
     if region_code:
         and_conditions.append(
-            {
-                "operation": "EQ",
-                "field_name": "region_code",
-                "field_values": [region_code],
-            }
+            Condition(
+                operation="EQ",
+                field_name="region_code",
+                field_values=[region_code],
+            )
         )
     if music_id:
         and_conditions.append(
-            {"operation": "EQ", "field_name": "music_id", "field_values": [music_id]}
+            Condition(operation="EQ", field_name="music_id", field_values= [music_id])
         )
     if effect_id:
         and_conditions.append(
             {"operation": "EQ", "field_name": "effect_id", "field_values": [effect_id]}
         )
-    query = {"and": and_conditions}
+    query = Query(and_conditions, [], [])
+
     return query
 
 

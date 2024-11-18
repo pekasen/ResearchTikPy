@@ -10,9 +10,12 @@ from .researchtik import (
     get_videos_query,
 )
 from .utils import AccessToken
+from .query_lang import Condition, Query
 
 __all__ = [
     "AccessToken",
+    "Condition",
+    "Query",
     "get_following",
     "get_followers",
     "get_liked_videos",
