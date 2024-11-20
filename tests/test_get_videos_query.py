@@ -1,8 +1,6 @@
-import unittest
+import pytest
 from unittest.mock import patch
-
 import pandas as pd
-from pydantic import ValidationError
 from researchtikpy import get_videos_query
 
 access_token = "clt.SAMESYNTHETICDATATOKEN"
@@ -35,39 +33,103 @@ mock_json_response = {
                 "video_stitched": "https://test.com/stitched.mp4",
                 "video_duet": "https://test.com/duet.mp4",
             }
-        ]
+        ],
+        "search_id": "123456789",
+        "cursor": 0,
+        "has_more": False,
     }
 }
 
-class TestGetVideosQuery(unittest.TestCase):
-    @patch('requests.post')
-    def test_get_videos_query(self, mock_post):
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = mock_json_response
-        df = get_videos_query(
-            query={"and": [{"operation": "IN", "field_name": "hashtag_name", "field_values": ["germany"]}]},
+
+@patch("requests.post")
+def test_get_videos_query(mock_post):
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.json.return_value = mock_json_response.copy()
+    df = get_videos_query(
+        query={
+            "and": [
+                {
+                    "operation": "IN",
+                    "field_name": "hashtag_name",
+                    "field_values": ["germany"],
+                }
+            ]
+        },
+        access_token=access_token,
+        start_date="20240101",
+        end_date="20240102",
+        total_max_count=10,
+        max_count=10,
+    )
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) > 0
+
+
+@patch("requests.post")
+def test_invalid_query(mock_post):
+    # 'operation' EQ must have one field value
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.json.return_value = mock_json_response
+    invalid_query = {
+        "and": [
+            {"operation": "EQ", "field_name": "keyword", "field_values": ["one", "two"]}
+        ]
+    }
+    with pytest.raises(ValueError):
+        get_videos_query(
+            query=invalid_query,
             access_token=access_token,
             start_date="20240101",
             end_date="20240102",
             total_max_count=10,
-            max_count=10
+            max_count=10,
         )
-        assert isinstance(df, pd.DataFrame)
-        assert len(df) > 0
-    
-    @patch('requests.post')
-    def test_invalid_query(self, mock_post):
-        # 'operation' EQ must have one field value
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = mock_json_response
-        invalid_query = {"and": [{"operation": "EQ", "field_name": "keyword", "field_values": ["one", "two"]}]}
-        with self.assertRaises(ValueError):
-            get_videos_query(
-                query=invalid_query,
-                access_token=access_token,
-                start_date="20240101",
-                end_date="20240102",
-                total_max_count=10,
-                max_count=10
-            )
 
+
+@patch("requests.post")
+def test_paged_query(mock_post):
+    mock_post.return_value.status_code = 200
+    json_response = mock_json_response.copy()
+    json_response["data"]["has_more"] = True
+    mock_post.return_value.json.return_value = json_response
+    df = get_videos_query(
+        query={
+            "and": [
+                {
+                    "operation": "IN",
+                    "field_name": "hashtag_name",
+                    "field_values": ["germany"],
+                }
+            ]
+        },
+        access_token=access_token,
+        start_date="20240101",
+        end_date="20240102",
+        total_max_count=10,
+        max_count=10,
+    )
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) > 0
+
+
+@patch("requests.post")
+def test_no_good_query(mock_post):
+    mock_post.return_value.status_code = 500
+
+    with pytest.raises(ValueError):
+        get_videos_query(
+            query={
+                "and": [
+                    {
+                        "operation": "IN",
+                        "field_name": "hashtag_name",
+                        "field_values": ["germany"],
+                    }
+                ]
+            },
+            access_token=access_token,
+            start_date="20240101",
+            end_date="20240102",
+            total_max_count=10,
+            max_count=10,
+        )
