@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import patch, MagicMock
 from researchtikpy import get_following
 import pandas as pd

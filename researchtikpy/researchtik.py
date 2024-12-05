@@ -9,6 +9,7 @@ import time
 from datetime import datetime
 from time import sleep
 
+from loguru import logger
 import pandas as pd
 import requests
 
@@ -17,201 +18,6 @@ from researchtikpy.query_lang import Condition, Query, as_dict
 from researchtikpy.utils import validate_access_token_object
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-positional-arguments
-
-def get_followers(
-    usernames_list, access_token, max_count=100, total_count=None, verbose=True
-):
-    """
-    Fetch followers for multiple users and compile them into a single DataFrame.
-
-    It is advised to keep the list of usernames short to avoid longer runtimes.
-
-    Parameters
-    ----------
-    usernames_list : list
-        List of usernames to fetch followers for.
-    access_token : str
-        Access token for TikTok's API.
-    max_count : int, optional
-        Maximum number of followers to retrieve per request (default is 100).
-    total_count : int, optional
-        Maximum total number of followers to retrieve per user.
-    verbose : bool, optional
-        If True, prints detailed logs; if False, suppresses most print statements.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame containing all followers from the provided usernames.
-
-    Note
-    ----
-    You might encounter a varying number of followers fetched per request.
-    This is due to how TikTok's API handles pagination and possibly how it 
-    limits data per request. As you approach the total limit of followers you
-    want to fetch (total_count), the API might return fewer followers per
-    request,especially if the remaining number to reach the total is less than
-    your specified max_count. This is normal behavior for APIs when handling
-    paginated results close to the limit of a dataset. It however unnecessarily
-    uses your daily quota faster than it should.
-    We'll have to optimize that in the future.
-    """
-    all_followers_df = pd.DataFrame()
-    session = requests.Session()  # Use session for improved performance
-    endpoint = endpoints.followers
-
-    for username in usernames_list:
-        followers_list = []
-        cursor = 0  # Initialize cursor for pagination
-        has_more = True
-        retrieved_count = 0  # Track the count of retrieved followers
-        effective_max_count = max_count  # Reset max_count for each user
-
-        while has_more and (total_count is None or retrieved_count < total_count):
-            # Adjust max_count based on remaining followers needed
-            if total_count is not None:
-                effective_max_count = min(max_count, total_count - retrieved_count)
-
-            headers = {
-                "Authorization": f"Bearer {validate_access_token_object(access_token)}",
-                "Content-Type": "application/json",
-            }
-            query_body = {
-                "username": username,
-                "max_count": effective_max_count,
-                "cursor": cursor,
-            }
-
-            response = session.post(endpoint, headers=headers, json=query_body)
-
-            if response.status_code == 200:
-                data = response.json().get("data", {})
-                followers = data.get("user_followers", [])
-                followers_list.extend(followers)
-                retrieved_count += len(followers)
-                has_more = data.get("has_more", False)
-                cursor = data.get(
-                    "cursor", cursor + effective_max_count
-                )  # Update cursor based on response
-                if verbose:
-                    print(
-                        f"Retrieved {len(followers)} followers for user"
-                        f"{username} (total retrieved: {retrieved_count})"
-                    )
-            elif response.status_code == 429:
-                if verbose:
-                    print(
-                        "Rate limit exceeded fetching followers"
-                        f"for user {username}. Pausing before retrying..."
-                    )
-                sleep(
-                    60
-                )  # Adjust sleep time based on the API's rate limit reset window
-                continue  # Continue to the next iteration without breaking the loop
-            else:
-                if verbose:
-                    print(
-                        f"Error fetching followers for user {username}: {response.status_code}",
-                        response.json(),
-                    )
-                break  # Stop the loop for the current user
-
-        if followers_list:
-            followers_df = pd.DataFrame(followers_list)
-            followers_df["target_account"] = (
-                username  # Identify the account these followers belong to
-            )
-            all_followers_df = pd.concat(
-                [all_followers_df, followers_df], ignore_index=True
-            )
-
-    return all_followers_df
-
-
-def get_following(usernames_list, access_token, max_count=100, verbose=True):
-    """
-    Fetch accounts that a user follows. Each username in the list is used
-    to fetch accounts they follow.
-
-    Parameters
-    ----------
-    usernames_list : list
-        List of usernames to fetch followed accounts for.
-    access_token : str
-        Access token for TikTok's API.
-    max_count : int, optional
-        Maximum number of followed accounts to retrieve per request
-        (default is 100).
-    verbose : bool, optional
-        If True, prints detailed logs; if False, suppresses most
-        print statements.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame containing all followed accounts from the provided usernames.
-    """
-    all_following_df = pd.DataFrame()
-    session = requests.Session()  # Use session for improved performance
-
-    for username in usernames_list:
-        following_list = []
-        cursor = 0  # Initialize cursor for pagination
-        has_more = True
-
-        while has_more:
-            endpoint = endpoints.followings
-            headers = {
-                "Authorization": f"Bearer {validate_access_token_object(access_token)}",
-                "Content-Type": "application/json",
-            }
-            query_body = {
-                "username": username,
-                "max_count": max_count,
-                "cursor": cursor,
-            }
-
-            response = session.post(endpoint, headers=headers, json=query_body)
-
-            if response.status_code == 200:
-                data = response.json().get("data", {})
-                following = data.get("user_following", [])
-                following_list.extend(following)
-                has_more = data.get("has_more", False)
-                cursor = data.get(
-                    "cursor", cursor + max_count
-                )  # Update cursor based on response
-                if verbose:
-                    print(f"Retrieved {len(following)}"
-                          f"accounts for user {username}")
-            elif response.status_code == 429:
-                if verbose:
-                    print(
-                        "Rate limit exceeded fetching following for"
-                        f"user {username}. Pausing before retrying..."
-                    )
-                sleep(
-                    60
-                )  # Adjust sleep time based on the API's rate limit reset window
-                continue  # Continue to the next iteration without breaking the loop
-            else:
-                if verbose:
-                    print(
-                        f"Error fetching following for user {username}: {response.status_code}",
-                        response.json(),
-                    )
-                break  # Stop the loop for the current user
-
-        if following_list:
-            following_df = pd.DataFrame(following_list)
-            following_df["target_account"] = (
-                username  # Identify the account these followings belong to
-            )
-            all_following_df = pd.concat(
-                [all_following_df, following_df], ignore_index=True
-            )
-
-    return all_following_df
 
 
 def get_users_info(
@@ -567,7 +373,7 @@ def get_videos_query(
 
     while has_more is True and len(collected_videos) < total_max_count:
 
-        print(f"Fetching videos with cursor at {params.get('cursor', 0)}")
+        logger.debug(f"Requesting POST: {url_with_fields } with params: {params}")
 
         response = requests.post(
             url_with_fields,
@@ -575,6 +381,7 @@ def get_videos_query(
             json=params,
             timeout=30,
         )
+
         if response.status_code == 200:
             data = response.json().get("data", {})
             videos = data.get("videos", [])
@@ -584,8 +391,8 @@ def get_videos_query(
                 if "cursor" in data:
                     params["cursor"] = data.get("cursor")
                     params["search_id"] = data.get("search_id")
-                else:
-                    break
+            else:
+                break
         elif response.status_code == 429:
             print("Rate limit exceeded. Pausing before retrying...")
             time.sleep(rate_limit_pause)
@@ -750,3 +557,199 @@ def get_pinned_videos(
                     print("No valid JSON response available.")
 
     return pinned_videos_df
+
+
+def get_followers(
+    usernames_list, access_token, max_count=100, total_count=None, verbose=True
+):
+    """
+    Fetch followers for multiple users and compile them into a single DataFrame.
+
+    It is advised to keep the list of usernames short to avoid longer runtimes.
+
+    Parameters
+    ----------
+    usernames_list : list
+        List of usernames to fetch followers for.
+    access_token : str
+        Access token for TikTok's API.
+    max_count : int, optional
+        Maximum number of followers to retrieve per request (default is 100).
+    total_count : int, optional
+        Maximum total number of followers to retrieve per user.
+    verbose : bool, optional
+        If True, prints detailed logs; if False, suppresses most print statements.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing all followers from the provided usernames.
+
+    Note
+    ----
+    You might encounter a varying number of followers fetched per request.
+    This is due to how TikTok's API handles pagination and possibly how it 
+    limits data per request. As you approach the total limit of followers you
+    want to fetch (total_count), the API might return fewer followers per
+    request,especially if the remaining number to reach the total is less than
+    your specified max_count. This is normal behavior for APIs when handling
+    paginated results close to the limit of a dataset. It however unnecessarily
+    uses your daily quota faster than it should.
+    We'll have to optimize that in the future.
+    """
+    all_followers_df = pd.DataFrame()
+    session = requests.Session()  # Use session for improved performance
+    endpoint = endpoints.followers
+
+    for username in usernames_list:
+        followers_list = []
+        cursor = 0  # Initialize cursor for pagination
+        has_more = True
+        retrieved_count = 0  # Track the count of retrieved followers
+        effective_max_count = max_count  # Reset max_count for each user
+
+        while has_more and (total_count is None or retrieved_count < total_count):
+            # Adjust max_count based on remaining followers needed
+            if total_count is not None:
+                effective_max_count = min(max_count, total_count - retrieved_count)
+
+            headers = {
+                "Authorization": f"Bearer {validate_access_token_object(access_token)}",
+                "Content-Type": "application/json",
+            }
+            query_body = {
+                "username": username,
+                "max_count": effective_max_count,
+                "cursor": cursor,
+            }
+
+            response = session.post(endpoint, headers=headers, json=query_body)
+
+            if response.status_code == 200:
+                data = response.json().get("data", {})
+                followers = data.get("user_followers", [])
+                followers_list.extend(followers)
+                retrieved_count += len(followers)
+                has_more = data.get("has_more", False)
+                cursor = data.get(
+                    "cursor", cursor + effective_max_count
+                )  # Update cursor based on response
+                if verbose:
+                    print(
+                        f"Retrieved {len(followers)} followers for user"
+                        f"{username} (total retrieved: {retrieved_count})"
+                    )
+            elif response.status_code == 429:
+                if verbose:
+                    print(
+                        "Rate limit exceeded fetching followers"
+                        f"for user {username}. Pausing before retrying..."
+                    )
+                sleep(
+                    60
+                )  # Adjust sleep time based on the API's rate limit reset window
+                continue  # Continue to the next iteration without breaking the loop
+            else:
+                if verbose:
+                    print(
+                        f"Error fetching followers for user {username}: {response.status_code}",
+                        response.json(),
+                    )
+                break  # Stop the loop for the current user
+
+        if followers_list:
+            followers_df = pd.DataFrame(followers_list)
+            followers_df["target_account"] = (
+                username  # Identify the account these followers belong to
+            )
+            all_followers_df = pd.concat(
+                [all_followers_df, followers_df], ignore_index=True
+            )
+
+    return all_followers_df
+
+
+def get_following(usernames_list, access_token, max_count=100, verbose=True):
+    """
+    Fetch accounts that a user follows. Each username in the list is used
+    to fetch accounts they follow.
+
+    Parameters
+    ----------
+    usernames_list : list
+        List of usernames to fetch followed accounts for.
+    access_token : str
+        Access token for TikTok's API.
+    max_count : int, optional
+        Maximum number of followed accounts to retrieve per request
+        (default is 100).
+    verbose : bool, optional
+        If True, prints detailed logs; if False, suppresses most
+        print statements.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing all followed accounts from the provided usernames.
+    """
+    all_following_df = pd.DataFrame()
+    session = requests.Session()  # Use session for improved performance
+
+    for username in usernames_list:
+        following_list = []
+        cursor = 0  # Initialize cursor for pagination
+        has_more = True
+
+        while has_more:
+            endpoint = endpoints.followings
+            headers = {
+                "Authorization": f"Bearer {validate_access_token_object(access_token)}",
+                "Content-Type": "application/json",
+            }
+            query_body = {
+                "username": username,
+                "max_count": max_count,
+                "cursor": cursor,
+            }
+
+            response = session.post(endpoint, headers=headers, json=query_body)
+
+            if response.status_code == 200:
+                data = response.json().get("data", {})
+                following = data.get("user_following", [])
+                following_list.extend(following)
+                has_more = data.get("has_more", False)
+                cursor = data.get(
+                    "cursor", cursor + max_count
+                )  # Update cursor based on response
+                if verbose:
+                    print(f"Retrieved {len(following)}"
+                          f"accounts for user {username}")
+            elif response.status_code == 429:
+                if verbose:
+                    print(
+                        "Rate limit exceeded fetching following for"
+                        f"user {username}. Pausing before retrying..."
+                    )
+                sleep(
+                    60
+                )  # Adjust sleep time based on the API's rate limit reset window
+                continue  # Continue to the next iteration without breaking the loop
+            else:
+                if verbose:
+                    print(
+                        f"Error fetching following for user {username}: {response.status_code}",
+                        response.json(),
+                    )
+                break  # Stop the loop for the current user
+
+        if following_list:
+            following_df = pd.DataFrame(following_list)
+            following_df["target_account"] = (
+                username  # Identify the account these followings belong to
+            )
+            all_following_df = pd.concat(
+                [all_following_df, following_df], ignore_index=True
+            )
+
+    return all_following_df
