@@ -1,4 +1,3 @@
-import pytest
 import pandas as pd
 from unittest.mock import patch, MagicMock
 from researchtikpy import get_liked_videos

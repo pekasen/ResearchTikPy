@@ -1,8 +1,6 @@
-import pytest
 from unittest.mock import patch
 import pandas as pd
 from researchtikpy import get_videos_hashtag
-from .helpers import access_token
 
 
 @patch("requests.post")
