@@ -5,6 +5,7 @@ The functions are designed to fetch data for multiple users or videos at once
 and compile them into a single DataFrame for further analysis.
 """
 
+from json import JSONDecodeError
 import time
 from datetime import datetime
 from time import sleep
@@ -699,6 +700,7 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
         following_list = []
         cursor = 0  # Initialize cursor for pagination
         has_more = True
+        _retry_count_ = 0  # Track the number of retries
 
         while has_more:
             endpoint = endpoints.followings
@@ -715,7 +717,24 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
             response = session.post(endpoint, headers=headers, json=query_body)
 
             if response.status_code == 200:
-                data = response.json().get("data", {})
+                try:
+                    data = response.json().get("data", {})
+                except JSONDecodeError:
+                    # Try again be fetching the same page.
+                    logger.error(
+                        "Error fetching following for user"
+                        f"{username}: {response.status_code}. Response was: "
+                        f"{response.text}"
+                    )
+                    _retry_count_ += 1
+                    if _retry_count_ > 3:
+                        logger.error(
+                            "Failed to fetch following for user"
+                            f"{username} after 3 retries. Skipping."
+                        )
+                        break
+                    continue
+                    
                 following = data.get("user_following", [])
                 following_list.extend(following)
                 has_more = data.get("has_more", False)
@@ -723,11 +742,11 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
                     "cursor", cursor + max_count
                 )  # Update cursor based on response
                 if verbose:
-                    print(f"Retrieved {len(following)}"
-                          f"accounts for user {username}")
+                    logger.debug(f"Retrieved {len(following)}"
+                                 f"accounts for user {username}")
             elif response.status_code == 429:
                 if verbose:
-                    print(
+                    logger.error(
                         "Rate limit exceeded fetching following for"
                         f"user {username}. Pausing before retrying..."
                     )
@@ -737,7 +756,7 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
                 continue  # Continue to the next iteration without breaking the loop
             else:
                 if verbose:
-                    print(
+                    logger.error(
                         f"Error fetching following for user {username}: {response.status_code}",
                         response.json(),
                     )
