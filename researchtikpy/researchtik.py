@@ -24,7 +24,7 @@ def get_users_info(
     usernames,
     access_token,
     fields="display_name,bio_description,avatar_url,is_verified,"
-           "follower_count,following_count,likes_count,video_count",
+    "follower_count,following_count,likes_count,video_count",
     verbose=True,
 ):
     """
@@ -93,7 +93,7 @@ def get_liked_videos(
     usernames,
     access_token,
     fields="id,video_description,create_time,username,like_count,"
-           "comment_count,share_count,view_count,hashtag_names",
+    "comment_count,share_count,view_count,hashtag_names",
     max_count=100,
     verbose=True,
 ):
@@ -221,7 +221,7 @@ def get_videos_info(
     """
 
     query = {
-            "and": [
+        "and": [
             {
                 "operation": "IN",
                 "field_name": "username",
@@ -321,7 +321,7 @@ def _create_query(
         )
     if music_id:
         and_conditions.append(
-            Condition(operation="EQ", field_name="music_id", field_values= [music_id])
+            Condition(operation="EQ", field_name="music_id", field_values=[music_id])
         )
     if effect_id:
         and_conditions.append(
@@ -490,7 +490,7 @@ def get_pinned_videos(
     usernames,
     access_token,
     fields="id,video_description,create_time,username,"
-           "like_count,comment_count,share_count,view_count,hashtag_names",
+    "like_count,comment_count,share_count,view_count,hashtag_names",
     verbose=True,
 ):
     """
@@ -586,7 +586,7 @@ def get_followers(
     Note
     ----
     You might encounter a varying number of followers fetched per request.
-    This is due to how TikTok's API handles pagination and possibly how it 
+    This is due to how TikTok's API handles pagination and possibly how it
     limits data per request. As you approach the total limit of followers you
     want to fetch (total_count), the API might return fewer followers per
     request,especially if the remaining number to reach the total is less than
@@ -721,8 +721,7 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
                     "cursor", cursor + max_count
                 )  # Update cursor based on response
                 if verbose:
-                    print(f"Retrieved {len(following)}"
-                          f"accounts for user {username}")
+                    print(f"Retrieved {len(following)}" f"accounts for user {username}")
             elif response.status_code == 429:
                 if verbose:
                     print(
