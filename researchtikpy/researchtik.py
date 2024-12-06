@@ -236,7 +236,7 @@ def get_videos_info(
             f"{start_date} to "
             f"{end_date}"
         )
-    get_videos_query(
+    return get_videos_query(
         query=query,
         access_token=access_token,
         start_date=start_date,
