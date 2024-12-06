@@ -220,17 +220,15 @@ def get_videos_info(
         DataFrame containing the video information.
     """
 
-    query = (
-        {
+    query = {
             "and": [
-                {
-                    "operation": "IN",
-                    "field_name": "username",
-                    "field_values": usernames,
-                }
-            ]
-        },
-    )
+            {
+                "operation": "IN",
+                "field_name": "username",
+                "field_values": usernames,
+            }
+        ]
+    }
 
     if verbose:
         print(
