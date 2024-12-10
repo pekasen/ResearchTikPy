@@ -61,30 +61,26 @@ def get_users_info(
             endpoint, headers=headers, json=query_body, params=params
         )
 
-        if verbose:
-            print(f"Fetching info for user: {username}")
+        logger.debug(f"Fetching info for user: {username}")
 
         if response.status_code == 200:
             user_data = response.json().get("data", {})
             if user_data:  # Check if data is not empty
                 users_data.append(user_data)
             else:
-                if verbose:
-                    print(f"No data found for user: {username}")
+                logger.warning(f"No data found for user: {username}")
         else:
-            if verbose:
-                print(
-                    f"Error for user {username}: {response.status_code}",
-                    response.json(),
-                )
+            logger.error(
+                f"Error for user {username}: {response.status_code}",
+                response.json(),
+            )
             users_data.append(
                 {"username": username, "error": "Failed to retrieve data"}
             )
 
     users_df = pd.DataFrame(users_data)
 
-    if verbose:
-        print("User info retrieval complete.")
+    logger.info("User info retrieval complete.")
 
     return users_df
 
@@ -151,36 +147,32 @@ def get_liked_videos(
                     liked_videos_df = pd.concat(
                         [liked_videos_df, current_df], ignore_index=True
                     )
-                    if verbose:
-                        print(
-                            f"Successfully fetched {len(user_liked_videos)}"
-                            f"liked videos for user {username}"
-                        )
+                    
+                    logger.debug(
+                        f"Successfully fetched {len(user_liked_videos)}"
+                        f"liked videos for user {username}"
+                    )
                 else:
-                    if verbose:
-                        print(f"No liked videos found for user {username}")
+                    logger.warning(f"No liked videos found for user {username}")
 
                 has_more = data.get("has_more", False)
                 cursor = data.get(
                     "cursor", cursor + max_count
                 )  # Use API provided cursor if available, else increment
             elif response.status_code == 403:
-                if verbose:
-                    print(
-                        f"Access denied: User {username} has not enabled collecting liked videos."
-                    )
+                logger.warning(
+                    f"Access denied: User {username} has not enabled collecting liked videos."
+                )
                 break  # Exit the loop for the current username if access is denied
             elif response.status_code == 429:
-                if verbose:
-                    print("Rate limit exceeded. Pausing before retrying...")
+                logger.info("Rate limit exceeded. Pausing before retrying...")
                 sleep(60)  # Pause execution before retrying
                 continue  # Optional: retry the last request
             else:
-                if verbose:
-                    print(
-                        f"Error fetching liked videos for user {username}: {response.status_code}",
-                        response.json(),
-                    )
+                logger.warning(
+                    f"Error fetching liked videos for user {username}: {response.status_code}",
+                    response.json(),
+                )
                 break  # Stop fetching for current user in case of an error
 
     return liked_videos_df
@@ -230,12 +222,11 @@ def get_videos_info(
         ]
     }
 
-    if verbose:
-        print(
-            f"Querying videos for {', '.join(usernames)} from "
-            f"{start_date} to "
-            f"{end_date}"
-        )
+    logger.debug(
+        f"Querying videos for {', '.join(usernames)} from "
+        f"{start_date} to "
+        f"{end_date}"
+    )
     return get_videos_query(
         query=query,
         access_token=access_token,
@@ -392,7 +383,7 @@ def get_videos_query(
             else:
                 break
         elif response.status_code == 429:
-            print("Rate limit exceeded. Pausing before retrying...")
+            logger.info("Rate limit exceeded. Pausing before retrying...")
             time.sleep(rate_limit_pause)
         else:
             raise ValueError(f"status_code={response.status_code}. {response.json()}")
@@ -452,8 +443,7 @@ def get_video_comments(
                 f"{endpoint}?fields={fields}", headers=headers, json=body_params
             )
 
-            if verbose:
-                print(f"Fetching comments for video {video_id} with cursor at {cursor}")
+            logger.debug(f"Fetching comments for video {video_id} with cursor at {cursor}")
 
             if response.status_code == 200:
                 data = response.json().get("data", {})
@@ -471,16 +461,14 @@ def get_video_comments(
                 has_more = data.get("has_more", False)
                 cursor += max_count  # Increment cursor based on max_count
             elif response.status_code == 429:
-                if verbose:
-                    print("Rate limit exceeded. Pausing before retrying...")
+                logger.info("Rate limit exceeded. Pausing before retrying...")
                 sleep(30)  # Pause execution before retrying
             else:
-                if verbose:
-                    print(
-                        f"Error fetching comments for video {video_id}:"
-                        f"{response.status_code}",
-                        response.json(),
-                    )
+                logger.debug(
+                    f"Error fetching comments for video {video_id}:"
+                    f"{response.status_code}",
+                    response.json(),
+                )
                 break  # Stop the loop in case of an error
 
     return all_comments_df
@@ -536,23 +524,20 @@ def get_pinned_videos(
                 pinned_videos_df = pd.concat(
                     [pinned_videos_df, temp_df], ignore_index=True
                 )
-                if verbose:
-                    print(
-                        f"Successfully fetched {len(pinned_videos)}"
-                        f"pinned videos for user {username}"
-                    )
-            else:
-                if verbose:
-                    print(f"No pinned videos found for user {username}")
-        else:
-            if verbose:
-                print(
-                    f"Error fetching pinned videos for user {username}: {response.status_code}"
+                logger.debug(
+                    f"Successfully fetched {len(pinned_videos)}"
+                    f"pinned videos for user {username}"
                 )
-                try:
-                    print(response.json())
-                except ValueError:  # handles the JSONDecodeError for non-JSON responses
-                    print("No valid JSON response available.")
+            else:
+                logger.warning(f"No pinned videos found for user {username}")
+        else:
+            logger.debug(
+                f"Error fetching pinned videos for user {username}: {response.status_code}"
+            )
+            try:
+                logger.debug(response.json())
+            except ValueError:  # handles the JSONDecodeError for non-JSON responses
+                logger.debug("No valid JSON response available.")
 
     return pinned_videos_df
 
@@ -632,27 +617,24 @@ def get_followers(
                 cursor = data.get(
                     "cursor", cursor + effective_max_count
                 )  # Update cursor based on response
-                if verbose:
-                    print(
-                        f"Retrieved {len(followers)} followers for user"
-                        f"{username} (total retrieved: {retrieved_count})"
-                    )
+                logger.debug(
+                    f"Retrieved {len(followers)} followers for user"
+                    f"{username} (total retrieved: {retrieved_count})"
+                )
             elif response.status_code == 429:
-                if verbose:
-                    print(
-                        "Rate limit exceeded fetching followers"
-                        f"for user {username}. Pausing before retrying..."
-                    )
+                logger.info(
+                    "Rate limit exceeded fetching followers"
+                    f"for user {username}. Pausing before retrying..."
+                )
                 sleep(
                     60
                 )  # Adjust sleep time based on the API's rate limit reset window
                 continue  # Continue to the next iteration without breaking the loop
             else:
-                if verbose:
-                    print(
-                        f"Error fetching followers for user {username}: {response.status_code}",
-                        response.json(),
-                    )
+                logger.error(
+                    f"Error fetching followers for user {username}: {response.status_code}",
+                    response.json(),
+                )
                 break  # Stop the loop for the current user
 
         if followers_list:
@@ -720,24 +702,22 @@ def get_following(usernames_list, access_token, max_count=100, verbose=True):
                 cursor = data.get(
                     "cursor", cursor + max_count
                 )  # Update cursor based on response
-                if verbose:
-                    print(f"Retrieved {len(following)}" f"accounts for user {username}")
+
+                logger.debug(f"Retrieved {len(following)}" f"accounts for user {username}")
             elif response.status_code == 429:
-                if verbose:
-                    print(
-                        "Rate limit exceeded fetching following for"
-                        f"user {username}. Pausing before retrying..."
-                    )
+                logger.info(
+                    "Rate limit exceeded fetching following for"
+                    f"user {username}. Pausing before retrying..."
+                )
                 sleep(
                     60
                 )  # Adjust sleep time based on the API's rate limit reset window
                 continue  # Continue to the next iteration without breaking the loop
             else:
-                if verbose:
-                    print(
-                        f"Error fetching following for user {username}: {response.status_code}",
-                        response.json(),
-                    )
+                logger.error(
+                    f"Error fetching following for user {username}: {response.status_code}",
+                    response.json(),
+                )
                 break  # Stop the loop for the current user
 
         if following_list:
